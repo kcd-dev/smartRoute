@@ -1,6 +1,6 @@
-# RouteMint 在 Codex 中的使用指南
+# smartRoute 在 Codex 中的使用指南
 
-> 本文档面向 **Codex CLI 的用户**，说明如何在自己的工作会话中调用和配合 RouteMint。
+> 本文档面向 **Codex CLI 的用户**，说明如何在自己的工作会话中调用和配合 smartRoute。
 > 如果你还没安装，先看 [README_zh.md](../README_zh.md) 完成安装和配置。
 
 ---
@@ -8,8 +8,8 @@
 ## 目录
 
 - [工作流程概览](#工作流程概览)
-- [RouteMint 如何与 Codex 通信](#routemint-如何与-codex-通信)
-- [告诉 Codex 使用 RouteMint](#告诉-codex-使用-routemint)
+- [smartRoute 如何与 Codex 通信](#smartroute-如何与-codex-通信)
+- [告诉 Codex 使用 smartRoute](#告诉-codex-使用-smartroute)
 - [Codex 会收到什么](#codex-会收到什么)
 - [好的 Prompt 模式 vs 不好的模式](#好的-prompt-模式-vs-不好的模式)
 - [实操示例](#实操示例)
@@ -19,7 +19,7 @@
 
 ## 工作流程概览
 
-当 RouteMint 安装完成后，你在 Codex 里的工作流程变成这样：
+当 smartRoute 安装完成后，你在 Codex 里的工作流程变成这样：
 
 ```
 你 → 告诉 Codex 任务
@@ -36,9 +36,9 @@ Codex 判断风险
 
 ---
 
-## RouteMint 如何与 Codex 通信
+## smartRoute 如何与 Codex 通信
 
-RouteMint 通过 **MCP（Model Context Protocol）** 与 Codex 集成。
+smartRoute 通过 **MCP（Model Context Protocol）** 与 Codex 集成。
 
 安装完成后，`.codex/config.toml`（全局或项目级）中注册了一个 MCP 服务：
 
@@ -50,7 +50,7 @@ startup_timeout_sec = 10
 tool_timeout_sec = 120
 ```
 
-Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露的 MCP 工具：
+Codex 启动时会自动加载这个配置，然后就能调用 smartRoute 暴露的 MCP 工具：
 
 | 工具名 | 用途 | 触发方 |
 |--------|------|--------|
@@ -73,18 +73,18 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
 
 ---
 
-## 告诉 Codex 使用 RouteMint
+## 告诉 Codex 使用 smartRoute
 
 启动 Codex 后，你只需要在合适的时机说一句类似这样的话：
 
 ```
-对低风险任务使用 RouteMint。
+对低风险任务使用 smartRoute。
 ```
 
 或者在具体任务前加上：
 
 ```
-用 RouteMint 给 user service 加单元测试。
+用 smartRoute 给 user service 加单元测试。
 ```
 
 安装时自动生成的 [AGENTS.md](../AGENTS.md) 已经告知了 Codex 什么任务适合委派、什么任务不该委派，所以通常只需要一句话提示。
@@ -92,7 +92,7 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
 ### 一句话开启
 
 ```
-帮我为 RouteMint 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
+帮我为 smartRoute 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
 ```
 
 如果 Codex 已经在仓库里，这句话会完成全套配置。
@@ -101,7 +101,7 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
 
 ## Codex 会收到什么
 
-当 Codex 调用 `delegate_task` 后，RouteMint 的响应包含一个 **interaction 区块**，方便你（和 Codex）理解发生了什么。
+当 Codex 调用 `delegate_task` 后，smartRoute 的响应包含一个 **interaction 区块**，方便你（和 Codex）理解发生了什么。
 
 ### 三种状态
 
@@ -109,7 +109,7 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
 |-----------------|------|------|
 | `preview` | 预览模式 | 只展示路由决策，没有实际调用 worker。`--dry-run` 时出现。|
 | `delegated_execution` | 委派成功 | Worker 执行完成，通过验证，Codex 可以审查并应用 patch。 |
-| `codex_takeover` | 交回 Codex | 风险太高 / 任务模糊 / worker 失败，RouteMint 把控制权交回 Codex。 |
+| `codex_takeover` | 交回 Codex | 风险太高 / 任务模糊 / worker 失败，smartRoute 把控制权交回 Codex。 |
 
 ### 完整响应示例
 
@@ -142,8 +142,8 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
   "interaction": {
     "tool": "codexsaver.delegate_task",
     "mode": "delegated_execution",
-    "headline": "RouteMint delegated this task to the configured worker provider.",
-    "route_label": "[RouteMint] route=deepseek task_type=write_tests risk=low",
+    "headline": "smartRoute delegated this task to the configured worker provider.",
+    "route_label": "[smartRoute] route=deepseek task_type=write_tests risk=low",
     "reason": "Task is delegatable and risk is acceptable.",
     "estimated_savings_percent": 45,
     "next_step": "Review the worker result and apply it only if the patch looks safe."
@@ -166,8 +166,8 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
   },
   "interaction": {
     "mode": "codex_takeover",
-    "headline": "RouteMint kept this task in Codex.",
-    "route_label": "[RouteMint] route=codex task_type=simple_refactor risk=high",
+    "headline": "smartRoute kept this task in Codex.",
+    "route_label": "[smartRoute] route=codex task_type=simple_refactor risk=high",
     "next_step": "Use Codex directly because the task is risky, protected, or ambiguous."
   }
 }
@@ -206,7 +206,7 @@ Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露
 
 ### 风险关键词
 
-任务的描述中如果包含以下关键词，会触发 RouteMint 的风险保护，任务会留在 Codex：
+任务的描述中如果包含以下关键词，会触发 smartRoute 的风险保护，任务会留在 Codex：
 
 ```
 authentication, authorization, permission, security, payment, billing,
@@ -301,11 +301,11 @@ python cli.py delegate "给 user service 加单元测试" --files src/user/servi
 
 ### 情形 1：Codex 从不调用 delegate_task
 
-很可能 Codex 不知道 RouteMint 存在。确认：
+很可能 Codex 不知道 smartRoute 存在。确认：
 
-1. `python cli.py doctor` 报告 `RouteMint is ready`
+1. `python cli.py doctor` 报告 `smartRoute is ready`
 2. `.codex/config.toml` 或 `~/.codex/config.toml` 包含 `codexsaver` MCP server 条目
-3. 对 Codex 说一句 **"对低风险任务使用 RouteMint"**
+3. 对 Codex 说一句 **"对低风险任务使用 smartRoute"**
 
 ### 情形 2：所有任务都交回 Codex
 
@@ -339,11 +339,11 @@ python cli.py auth set --provider openai --api-key sk-xxx --model gpt-4o-mini
 
 ## 记住一句话
 
-**你不改变自己的工作方式。Codex 学会在合适的时候叫 RouteMint 帮忙。**
+**你不改变自己的工作方式。Codex 学会在合适的时候叫 smartRoute 帮忙。**
 
 你的职责只是：
-1. 确保 RouteMint 已安装就绪（`doctor` 通过）
-2. 告诉 Codex "对低风险任务用 RouteMint"
+1. 确保 smartRoute 已安装就绪（`doctor` 通过）
+2. 告诉 Codex "对低风险任务用 smartRoute"
 3. 正常描述你的需求
 
 剩下的，Router 决定谁来做，Verifier 确保做得对，你只看到最终结果。

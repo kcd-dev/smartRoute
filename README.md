@@ -1,109 +1,110 @@
-# RouteMint
+# smartRoute
 
-> Make Codex cheaper without making it dumber.
+> 在不让 Codex 变笨的前提下，让它更便宜。
 
 <p align="center">
-  <a href="./README_zh.md"><strong>中文文档</strong></a>
+  <a href="./README_EN.md"><strong>English</strong></a>
+  ·
+  <a href="./README_zh.md"><strong>中文备份页</strong></a>
 </p>
 
-![RouteMint](./RouteMint.png)
+![smartRoute](./smartRoute.png)
 
-RouteMint is an MCP tool that turns Codex into a cost-aware router.
-It pushes low-risk development work to a cheaper worker LLM, keeps high-risk
-judgment in Codex, and returns enough interaction detail that you can feel when
-the tool is active.
+smartRoute 是一个 MCP 工具，它把 Codex 变成一个有成本意识的路由器。
+低风险开发工作下放给更便宜的 worker LLM，高风险判断留给 Codex，并且返回足够清晰的交互信息，
+让你明显感知到这个工具正在工作。
 
-- Lower-cost execution for tests, docs, search, and explanation work
-- Codex stays responsible for architecture, security, protected domains, and final review
-- Global-by-default Codex install, so every workspace can use the same MCP tool
-- DeepSeek by default, with presets for OpenAI, Anthropic, Gemini, Qwen, Ollama, LM Studio, and more
-- One-time local provider setup in `~/.codexsaver/config.json`
-- Verified with tests, real DeepSeek calls, and end-to-end MCP launcher checks
+- 用更低成本处理测试、文档、搜索、解释类任务
+- Codex 继续负责架构、安全、受保护域和最终审核
+- 默认全局安装，一次配置后每个 Codex 工作区都能使用
+- 默认 DeepSeek，同时支持 OpenAI、Anthropic、Gemini、Qwen、Ollama、LM Studio 等 provider
+- provider 配置持久化到 `~/.codexsaver/config.json`
+- 已通过测试、真实 DeepSeek 调用和全局 MCP launcher 检查
 
 ---
 
-## Why This Exists
+## 这个项目解决什么问题
 
-Most coding sessions contain two very different kinds of work:
+大多数编码会话其实混着两类完全不同的工作：
 
-- expensive thinking
-- cheap execution
+- 昂贵的判断
+- 廉价的执行
 
-Codex is excellent at the first one. It is overqualified for much of the second.
+Codex 很擅长第一类，但用它去做大量第二类工作，往往太贵了。
 
-RouteMint splits the flow on purpose:
+smartRoute 故意把这两件事拆开：
 
-- `Codex` handles reasoning, ambiguity, protected domains, and approval
-- a configured worker provider handles low-risk throughput work
+- `Codex` 负责推理、模糊需求、受保护域和审批
+- 已配置的 worker provider 负责低风险、高吞吐的执行工作
 
-That gives you a practical pattern:
+它想建立的是这样一个模式：
 
 ```text
-Use the expensive model for judgment.
-Use the cheaper model for volume.
-Never confuse the two.
+把昂贵模型用在判断上。
+把便宜模型用在体力活上。
+不要混用这两种价值。
 ```
 
 ---
 
-## What It Feels Like
+## 用起来是什么感觉
 
-When RouteMint is active, tool responses are not silent blobs of JSON.
-They include an `interaction` block that makes the routing decision visible:
+smartRoute 返回的不是一段静默 JSON。
+它会附带一个 `interaction` 区块，让你一眼看出这次调用发生了什么：
 
 ```json
 {
   "interaction": {
     "tool": "codexsaver.delegate_task",
     "mode": "delegated_execution",
-    "headline": "RouteMint delegated this task to the configured worker provider.",
-    "route_label": "[RouteMint] route=deepseek task_type=write_tests risk=low",
+    "headline": "smartRoute delegated this task to the configured worker provider.",
+    "route_label": "[smartRoute] route=deepseek task_type=write_tests risk=low",
     "next_step": "Review the worker result and apply it only if the patch looks safe."
   }
 }
 ```
 
-Three states matter:
+你只需要理解三种状态：
 
-- `preview`: routing preview only, no external model call
-- `delegated_execution`: delegated run completed
-- `codex_takeover`: task stayed with Codex because risk was too high or the task was ambiguous
+- `preview`：只是预览路由，没有外部模型调用
+- `delegated_execution`：委派执行已经完成
+- `codex_takeover`：风险太高或任务太模糊，交回 Codex 处理
 
 ---
 
-## Quick Start
+## 快速开始
 
-### Recommended Global Install
+### 推荐：全局安装
 
 ```bash
-git clone git@github.com:kcd-dev/smartSplit.git
-cd smartSplit
+git clone git@github.com:kcd-dev/smartRoute.git
+cd smartRoute
 
 python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
 python cli.py install
 python cli.py doctor
 ```
 
-That is it. `python cli.py install` writes a global Codex MCP entry to
-`~/.codex/config.toml` and points it at a stable launcher:
-`~/.codexsaver/codexsaver_mcp.py`.
+这就够了。`python cli.py install` 会把 smartRoute 写入全局 Codex MCP 配置
+`~/.codex/config.toml`，并指向一个稳定启动入口：
+`~/.codexsaver/codexsaver_mcp.py`。
 
-After that, every Codex workspace can call:
+之后任意 Codex 工作区都可以调用：
 
 ```text
 codexsaver.delegate_task
 ```
 
-Use `--project` only when you want a repository-local `.codex/config.toml`:
+只有当你想写入当前仓库自己的 `.codex/config.toml` 时，才需要使用：
 
 ```bash
 python cli.py install --project
 ```
 
-### Provider Setup
+### Provider 配置
 
-DeepSeek is the default because it is inexpensive and exposes an OpenAI-compatible API.
-Switching providers is just one flag:
+DeepSeek 是默认 provider，因为价格低，并且提供 OpenAI-compatible API。
+切换 provider 只需要改一个参数：
 
 ```bash
 python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini
@@ -112,14 +113,14 @@ python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2
 python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus
 ```
 
-For local models:
+本地模型：
 
 ```bash
 python cli.py auth set --provider ollama --model llama3.1
 python cli.py auth set --provider lmstudio --model local-model
 ```
 
-For any custom OpenAI-compatible endpoint:
+任意自定义 OpenAI-compatible endpoint：
 
 ```bash
 python cli.py auth set \
@@ -129,13 +130,13 @@ python cli.py auth set \
   --model your-model
 ```
 
-See built-in presets:
+查看内置 provider：
 
 ```bash
 python cli.py auth providers
 ```
 
-If you prefer a temporary one-shell-session setup instead of saving the key locally:
+如果你不想保存 key，而是只在当前 shell 会话里临时使用：
 
 ```bash
 export CODEXSAVER_PROVIDER=deepseek
@@ -144,32 +145,32 @@ python cli.py install
 python cli.py doctor
 ```
 
-### One Message To Codex
+### 一句话让 Codex 安装
 
-If Codex is already open in this repository, you can just say:
-
-```text
-Save my worker provider API key for RouteMint, run `python cli.py auth set --provider deepseek --api-key ...`, then run `python cli.py install` and `python cli.py doctor`, and tell me whether it is ready.
-```
-
-For repo-local setup:
+如果 Codex 已经打开了这个仓库，你可以直接发：
 
 ```text
-Save my worker provider API key for RouteMint, install RouteMint only for this repo, run `python cli.py auth set --provider deepseek --api-key ...`, `python cli.py install --project`, then `python cli.py doctor`, and summarize the result.
+帮我为 smartRoute 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
 ```
 
-Ready means:
+如果你只想做项目级安装：
 
-- `~/.codex/config.toml` contains the global `codexsaver` MCP server, or `.codex/config.toml` exists in the repo
-- `~/.codexsaver/codexsaver_mcp.py` exists for global installs
-- provider settings are available from env vars or `~/.codexsaver/config.json`
-- `python cli.py doctor` reports `RouteMint is ready`
+```text
+帮我为 smartRoute 保存 worker provider API key，并只把 smartRoute 安装到当前仓库，运行 `python cli.py auth set --provider deepseek --api-key ...`、`python cli.py install --project`，然后运行 `python cli.py doctor` 并总结结果。
+```
+
+这里的“就绪”指的是：
+
+- `~/.codex/config.toml` 包含全局 `codexsaver` MCP server，或仓库里存在 `.codex/config.toml`
+- 全局安装时存在 `~/.codexsaver/codexsaver_mcp.py`
+- provider 配置来自环境变量或 `~/.codexsaver/config.json`
+- `python cli.py doctor` 报告 `smartRoute is ready`
 
 ---
 
-## 60-Second Demo
+## 60 秒体验
 
-Global MCP config created by `python cli.py install`:
+`python cli.py install` 生成的全局 MCP 配置大致是：
 
 ```toml
 [mcp_servers.codexsaver]
@@ -179,198 +180,196 @@ startup_timeout_sec = 10
 tool_timeout_sec = 120
 ```
 
-Then tell Codex:
+然后直接告诉 Codex：
 
 ```text
-Use RouteMint for safe low-risk tasks.
-Add unit tests for user service.
+对低风险任务使用 smartRoute。
+给 user service 添加单元测试。
 ```
 
-Or call the CLI directly:
+也可以直接走 CLI：
 
 ```bash
 python cli.py delegate "Explain the routing logic briefly" --files codexsaver/router.py --workspace .
 ```
 
-Dry run:
+试运行：
 
 ```bash
-python cli.py "add unit tests for user service" --files src/user/service.ts --workspace . --dry-run
+python cli.py "添加单元测试" --files src/user/service.ts --workspace . --dry-run
 ```
 
-Real run:
+真实运行：
 
 ```bash
-python cli.py "add unit tests for user service" --files src/user/service.ts --workspace .
+python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 ```
 
 ---
 
-## Verified Setup Flow
+## 已验证的安装流程
 
-Measured on May 8, 2026 with the global install and local-key workflow:
+基于 2026 年 5 月 8 日、全局安装和本地 key 流程的实测结果：
 
-| Check | Command | Result |
+| 检查项 | 命令 | 结果 |
 |---|---|---|
-| Full test suite | `PYTHONDONTWRITEBYTECODE=1 python -m pytest -q -p no:cacheprovider` | `86 passed in 0.23s` |
-| Global install | `python cli.py install --workspace .` | `status=ok`, global config points at `~/.codexsaver/codexsaver_mcp.py` |
-| Local provider persistence | `python cli.py auth set --provider deepseek --api-key ...` | saved to `~/.codexsaver/config.json` |
-| Workspace doctor | `python cli.py doctor --workspace .` | `provider_api_key_source=local_config:deepseek`, workspace ready |
-| Global launcher check | `python ~/.codexsaver/codexsaver_mcp.py` with MCP `initialize` | returned `serverInfo.name=codexsaver` |
-| Real DeepSeek call | `python cli.py delegate "Explain the RouteMint router..." --files codexsaver/router.py --workspace .` | `route=deepseek`, `status=success`, verification passed |
+| 全量测试 | `PYTHONDONTWRITEBYTECODE=1 python -m pytest -q -p no:cacheprovider` | `86 passed in 0.23s` |
+| 全局安装 | `python cli.py install --workspace .` | `status=ok`，全局配置指向 `~/.codexsaver/codexsaver_mcp.py` |
+| 本地 provider 保存 | `python cli.py auth set --provider deepseek --api-key ...` | 已保存到 `~/.codexsaver/config.json` |
+| 工作区诊断 | `python cli.py doctor --workspace .` | `provider_api_key_source=local_config:deepseek`，工作区已就绪 |
+| 全局 launcher 检查 | 用 MCP `initialize` 调用 `~/.codexsaver/codexsaver_mcp.py` | 返回 `serverInfo.name=codexsaver` |
+| 真实 DeepSeek 调用 | `python cli.py delegate "Explain the smartRoute router..." --files codexsaver/router.py --workspace .` | `route=deepseek`、`status=success`、验证通过 |
 
-This is the intended workflow:
+推荐流程就是：
 
-1. Save the key once
-2. Install RouteMint globally
-3. Confirm readiness with `doctor`
-4. Use real delegated calls without re-exporting API keys
+1. 保存一次 key
+2. 全局安装 smartRoute
+3. 用 `doctor` 确认就绪
+4. 之后直接发起真实委派调用，不再重复导出 API key
 
 ---
 
-## Provider Matrix
+## Provider 一览
 
-Built-in presets cover the common hosted and local routes:
+内置预设覆盖常见云端和本地模型：
 
-| Provider | Style | Default model | API key |
+| Provider | 接口风格 | 默认模型 | API key |
 |---|---|---|---|
-| `deepseek` | OpenAI-compatible | `deepseek-chat` | required |
-| `openai` | OpenAI | `gpt-4o-mini` | required |
-| `anthropic` | native Messages API | `claude-3-5-haiku-latest` | required |
-| `gemini` | OpenAI-compatible endpoint | `gemini-2.0-flash` | required |
-| `qwen` | OpenAI-compatible endpoint | `qwen-plus` | required |
-| `ollama` | local OpenAI-compatible endpoint | `llama3.1` | not required |
-| `lmstudio` | local OpenAI-compatible endpoint | `local-model` | not required |
+| `deepseek` | OpenAI-compatible | `deepseek-chat` | 需要 |
+| `openai` | OpenAI | `gpt-4o-mini` | 需要 |
+| `anthropic` | native Messages API | `claude-3-5-haiku-latest` | 需要 |
+| `gemini` | OpenAI-compatible endpoint | `gemini-2.0-flash` | 需要 |
+| `qwen` | OpenAI-compatible endpoint | `qwen-plus` | 需要 |
+| `ollama` | 本地 OpenAI-compatible endpoint | `llama3.1` | 不需要 |
+| `lmstudio` | 本地 OpenAI-compatible endpoint | `local-model` | 不需要 |
 
-Run `python cli.py auth providers` for the complete list.
-
----
-
-## Post-Setup Usage Ratio
-
-After setup completed, I measured the actual routed tasks in this working session.
-I only counted tasks that truly entered model routing, not local commands like `pytest`,
-`git`, `install`, `doctor`, or README editing.
-
-Result:
-
-- `DeepSeek`: `7 / 8 = 87.5%`
-- `Codex`: `1 / 8 = 12.5%`
-
-Why not 100%?
-
-One test-writing prompt originally included the phrase `production logic`.
-That triggered the router's intentional high-risk keyword guard and returned the task to Codex.
-This was not a failure. It was the protection logic working as designed.
-
-If you only count the later standardized five-task benchmark with natural low-risk phrasing,
-the delegation ratio was:
-
-- `DeepSeek`: `5 / 5 = 100%`
-- `Codex`: `0 / 5 = 0%`
-
-Takeaway:
-
-- In real usage, RouteMint defaulted to DeepSeek for most low-risk work
-- It still preserved a strict fallback path for risky wording and protected domains
+完整列表可以运行 `python cli.py auth providers` 查看。
 
 ---
 
-## Five-Task A/B Benchmark
+## 配置完成后的使用占比
 
-Method:
+在配置完成之后，我统计了这轮工作会话里真正进入“模型路由决策”的任务。
+像 `pytest`、`git`、`install`、`doctor`、README 编辑这类纯本地步骤都不计入比例。
 
-- **A** = counterfactual `Codex-only` baseline with normalized cost index fixed at `1.00`
-- **B** = `RouteMint` mode with the live router and DeepSeek worker
-- latency is wall-clock time for the real RouteMint execution
-- savings come from the current `CostEstimator`, so this is a reproducible routing benchmark, not invoice-grade billing data
+结果是：
 
-Summary:
+- `DeepSeek`：`7 / 8 = 87.5%`
+- `Codex`：`1 / 8 = 12.5%`
 
-- All 5 tasks were typical low-risk development chores: explanation, docs, tests, and README maintenance
-- All 5 delegated successfully after using natural low-risk phrasing
-- Average live latency was `6.18s`
-- Average estimated savings were `48.4%`
-- Average normalized cost moved from `1.00` to `0.52`
-- Estimated relative reduction was `48.0%`
+为什么不是 100%？
 
-| Task | Type | Route | Latency | A: Codex-only Cost Index | B: RouteMint Cost Index | Estimated Savings | Output Shape |
+有一个测试任务最初包含了 `production logic` 这类措辞。
+这会触发路由器有意设计的高风险关键词保护，从而把任务交回 Codex。
+这不是失败，而是保护逻辑按预期生效。
+
+如果只看后面那组经过标准化措辞处理的“五任务基准”，则结果是：
+
+- `DeepSeek`：`5 / 5 = 100%`
+- `Codex`：`0 / 5 = 0%`
+
+结论很直接：
+
+- 在真实使用里，smartRoute 默认会把大多数低风险小任务交给 DeepSeek
+- 但它仍然保留了严格的回退路径，用来处理高风险表述和受保护域
+
+---
+
+## 五个小任务的 A/B 对比
+
+方法说明：
+
+- **A** = 反事实的 `Codex-only` 基线，归一化成本指数固定为 `1.00`
+- **B** = `smartRoute` 模式，真实经过当前路由器和 DeepSeek worker 执行
+- 延迟统计的是 smartRoute 实时调用的墙钟时间
+- 节省比例来自当前 `CostEstimator` 的估算，所以这是一个可复现的路由基准，不是账单级财务数据
+
+文字总结：
+
+- 这 5 个任务都属于典型的低风险开发小任务：解释代码、补文档、补测试、维护 README
+- 在使用更自然的低风险表述后，5 个任务全部成功委派
+- 实测平均延迟是 `6.18s`
+- 平均预计节省是 `48.4%`
+- 从归一化成本看，平均成本指数从 `1.00` 降到 `0.52`
+- 预计相对下降 `48.0%`
+
+| 任务 | 类型 | 路由 | 延迟 | A: Codex-only 成本指数 | B: smartRoute 成本指数 | 预计节省 | 输出形态 |
 |---|---|---|---:|---:|---:|---:|---|
-| Explain router logic | `explain` | `deepseek` | `2.13s` | `1.00` | `0.55` | `45%` | read-only summary |
-| Document router module | `docs` | `deepseek` | `3.13s` | `1.00` | `0.55` | `45%` | 1-file patch |
-| Add cost tests | `write_tests` | `deepseek` | `9.29s` | `1.00` | `0.55` | `45%` | test patch |
-| Explain verifier flow | `explain` | `deepseek` | `2.30s` | `1.00` | `0.55` | `45%` | read-only summary |
+| Explain router logic | `explain` | `deepseek` | `2.13s` | `1.00` | `0.55` | `45%` | 只读总结 |
+| Document router module | `docs` | `deepseek` | `3.13s` | `1.00` | `0.55` | `45%` | 单文件 patch |
+| Add cost tests | `write_tests` | `deepseek` | `9.29s` | `1.00` | `0.55` | `45%` | 测试 patch |
+| Explain verifier flow | `explain` | `deepseek` | `2.30s` | `1.00` | `0.55` | `45%` | 只读总结 |
 | Update install docs | `docs` | `deepseek` | `14.06s` | `1.00` | `0.38` | `62%` | README patch |
 
-![Five-task benchmark](./assets/ab-test-benchmark.svg)
+![五任务基准图](./assets/ab-test-benchmark.svg)
 
-Figure:
-Gray bars are the `Codex-only` baseline fixed at `100`.
-Green bars are the `RouteMint` cost index for the same task.
-Lower bars mean lower estimated Codex spend.
+图示说明：
+灰色柱子是固定为 `100` 的 `Codex-only` 基线，绿色柱子表示同一任务在
+`smartRoute` 模式下的归一化成本指数。柱子越低，预计节省越大。
 
-Interpretation:
+结果解读：
 
-- Read-only explain tasks were the fastest, cleanest wins
-- Small docs edits delegated well and returned compact, reviewable patches
-- Test generation had higher latency than explanation, but still stayed in the low-risk savings band
-- Larger-context documentation work produced the biggest estimated savings because the Codex-only context cost would be higher
-
----
-
-## Routing Rules
-
-### Good Tasks To Delegate
-
-- repo scanning and code search
-- code explanation and summarization
-- writing unit tests
-- fixing lint or type errors
-- documentation updates
-- boilerplate generation
-- small localized refactors
-
-### Tasks Kept In Codex
-
-- architecture decisions
-- auth, security, payment, billing, or permissions logic
-- database migrations
-- deployment and production operations
-- ambiguous product requests
-- final review before applying changes
-
-### Why Some Medium-Risk Tasks Still Delegate
-
-RouteMint does not just ask:
-
-```text
-Is this code work?
-```
-
-It asks:
-
-```text
-Is this code work cheap enough to delegate without losing judgment quality?
-```
-
-That creates a deliberate asymmetry:
-
-- read-only understanding can be cheap
-- writes in sensitive domains are expensive in risk even if the diff is small
-- ambiguity defaults to Codex, not delegation
-
-That is why `Explain auth code` may still delegate while `Refactor auth service` stays in Codex.
+- 只读解释型任务是最快、最稳定的收益来源
+- 小型文档修改也很适合下放，而且会返回紧凑、易审查的 patch
+- 测试生成的延迟高于 explain，但仍然保持在低风险节省区间
+- 上下文更大的文档任务节省更高，因为 `Codex-only` 模式下的上下文成本更高
 
 ---
 
-## How It Works
+## 路由规则
+
+### 适合委派给 DeepSeek 的任务
+
+- 仓库扫描和代码搜索
+- 代码解释与总结
+- 编写单元测试
+- 修复 lint / type error
+- 文档更新
+- 样板代码生成
+- 小范围局部重构
+
+### 应该保留给 Codex 的任务
+
+- 架构决策
+- 认证、安全、支付、账单、权限逻辑
+- 数据库迁移
+- 部署和生产操作
+- 模糊需求
+- 最终审核
+
+### 为什么有些中风险任务仍然会委派
+
+smartRoute 问的不是：
+
+```text
+这是不是编码任务？
+```
+
+它问的是：
+
+```text
+这是不是一个足够便宜、又不会损失判断质量的编码任务？
+```
+
+所以它会形成一个刻意的不对称：
+
+- 只读理解型工作可以尽量便宜
+- 敏感域里的写操作，哪怕改动很小，风险也会迅速升高
+- 一旦任务模糊，默认交回 Codex，而不是默认下放
+
+这也是为什么 `Explain auth code` 还有机会走 DeepSeek，而 `Refactor auth service`
+必须留给 Codex。
+
+---
+
+## 工作原理
 
 ```text
 User
   ↓
 Codex
   ↓ MCP tool call
-RouteMint
+smartRoute
   ├─ Router
   ├─ Context Packer
   ├─ Worker LLM Provider
@@ -380,27 +379,27 @@ RouteMint
 Codex review / apply / finalize
 ```
 
-Core modules:
+核心模块：
 
-- `Router`: classify tasks and assign risk
-- `ContextPacker`: bound file context before delegation
-- `ProviderClient`: call the configured worker model
-- `Verifier`: validate output shape, protected paths, and suggested commands
-- `CostEstimator`: estimate relative savings bands
-
----
-
-## Security And Persistence
-
-- `python cli.py auth set --provider ... --api-key ...` saves provider settings to `~/.codexsaver/config.json`
-- the config file is written with local-user-only permissions
-- `doctor` shows whether the key comes from the environment or local config, and only prints a masked preview
-- live calls use local config automatically if no env key is exported
-- if verification fails, RouteMint falls back to `needs_codex`
+- `Router`：任务分类和风险判断
+- `ContextPacker`：在委派前裁剪文件上下文
+- `ProviderClient`：调用已配置的 worker 模型
+- `Verifier`：检查返回结构、受保护路径和建议命令
+- `CostEstimator`：估算相对节省区间
 
 ---
 
-## Commands
+## 安全与持久化
+
+- `python cli.py auth set --provider ... --api-key ...` 会把 provider 配置保存到 `~/.codexsaver/config.json`
+- 配置文件会使用仅本地用户可读写的权限
+- `doctor` 会告诉你 key 是来自环境变量还是本地配置，并且只显示脱敏预览
+- 如果没有导出环境变量，真实调用会自动使用本地配置
+- 只要验证失败，smartRoute 就会回退为 `needs_codex`
+
+---
+
+## 常用命令
 
 ```bash
 python cli.py auth providers
@@ -416,18 +415,18 @@ python cli.py delegate "Explain the routing logic briefly" --files codexsaver/ro
 ## Roadmap
 
 - [x] MCP server
-- [x] rule-based routing
-- [x] bounded context packing
-- [x] DeepSeek default worker integration
-- [x] multi-provider OpenAI-compatible worker support
-- [x] local API key persistence
-- [x] interaction-aware tool responses
-- [x] end-to-end verification flow
-- [ ] cost-aware dynamic routing
-- [ ] cost-aware provider selection
+- [x] 规则路由
+- [x] 上下文裁剪
+- [x] DeepSeek 默认 worker 集成
+- [x] 多 provider OpenAI-compatible worker 支持
+- [x] 本地 API key 持久化
+- [x] 可感知的交互返回
+- [x] 端到端验证流程
+- [ ] 成本感知动态路由
+- [ ] 成本感知 provider 选择
 
 ---
 
-## If This Saves You Money
+## 如果它真的帮你省钱了
 
-Star the repo.
+点个 Star。

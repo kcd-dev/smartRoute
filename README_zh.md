@@ -1,10 +1,16 @@
-# RouteMint
+# smartRoute
 
 > 在不让 Codex 变笨的前提下，让它更便宜。
 
-![RouteMint](./RouteMint.png)
+<p align="center">
+  <a href="./README_EN.md"><strong>English</strong></a>
+  ·
+  <a href="./README.md"><strong>默认中文首页</strong></a>
+</p>
 
-RouteMint 是一个 MCP 工具，它把 Codex 变成一个有成本意识的路由器。
+![smartRoute](./smartRoute.png)
+
+smartRoute 是一个 MCP 工具，它把 Codex 变成一个有成本意识的路由器。
 低风险开发工作下放给更便宜的 worker LLM，高风险判断留给 Codex，并且返回足够清晰的交互信息，
 让你明显感知到这个工具正在工作。
 
@@ -26,7 +32,7 @@ RouteMint 是一个 MCP 工具，它把 Codex 变成一个有成本意识的路�
 
 Codex 很擅长第一类，但用它去做大量第二类工作，往往太贵了。
 
-RouteMint 故意把这两件事拆开：
+smartRoute 故意把这两件事拆开：
 
 - `Codex` 负责推理、模糊需求、受保护域和审批
 - 已配置的 worker provider 负责低风险、高吞吐的执行工作
@@ -43,7 +49,7 @@ RouteMint 故意把这两件事拆开：
 
 ## 用起来是什么感觉
 
-RouteMint 返回的不是一段静默 JSON。
+smartRoute 返回的不是一段静默 JSON。
 它会附带一个 `interaction` 区块，让你一眼看出这次调用发生了什么：
 
 ```json
@@ -51,8 +57,8 @@ RouteMint 返回的不是一段静默 JSON。
   "interaction": {
     "tool": "codexsaver.delegate_task",
     "mode": "delegated_execution",
-    "headline": "RouteMint delegated this task to the configured worker provider.",
-    "route_label": "[RouteMint] route=deepseek task_type=write_tests risk=low",
+    "headline": "smartRoute delegated this task to the configured worker provider.",
+    "route_label": "[smartRoute] route=deepseek task_type=write_tests risk=low",
     "next_step": "Review the worker result and apply it only if the patch looks safe."
   }
 }
@@ -71,15 +77,15 @@ RouteMint 返回的不是一段静默 JSON。
 ### 推荐：全局安装
 
 ```bash
-git clone git@github.com:kcd-dev/smartSplit.git
-cd smartSplit
+git clone git@github.com:kcd-dev/smartRoute.git
+cd smartRoute
 
 python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
 python cli.py install
 python cli.py doctor
 ```
 
-这就够了。`python cli.py install` 会把 RouteMint 写入全局 Codex MCP 配置
+这就够了。`python cli.py install` 会把 smartRoute 写入全局 Codex MCP 配置
 `~/.codex/config.toml`，并指向一个稳定启动入口：
 `~/.codexsaver/codexsaver_mcp.py`。
 
@@ -144,13 +150,13 @@ python cli.py doctor
 如果 Codex 已经打开了这个仓库，你可以直接发：
 
 ```text
-帮我为 RouteMint 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
+帮我为 smartRoute 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
 ```
 
 如果你只想做项目级安装：
 
 ```text
-帮我为 RouteMint 保存 worker provider API key，并只把 RouteMint 安装到当前仓库，运行 `python cli.py auth set --provider deepseek --api-key ...`、`python cli.py install --project`，然后运行 `python cli.py doctor` 并总结结果。
+帮我为 smartRoute 保存 worker provider API key，并只把 smartRoute 安装到当前仓库，运行 `python cli.py auth set --provider deepseek --api-key ...`、`python cli.py install --project`，然后运行 `python cli.py doctor` 并总结结果。
 ```
 
 这里的“就绪”指的是：
@@ -158,7 +164,7 @@ python cli.py doctor
 - `~/.codex/config.toml` 包含全局 `codexsaver` MCP server，或仓库里存在 `.codex/config.toml`
 - 全局安装时存在 `~/.codexsaver/codexsaver_mcp.py`
 - provider 配置来自环境变量或 `~/.codexsaver/config.json`
-- `python cli.py doctor` 报告 `RouteMint is ready`
+- `python cli.py doctor` 报告 `smartRoute is ready`
 
 ---
 
@@ -177,7 +183,7 @@ tool_timeout_sec = 120
 然后直接告诉 Codex：
 
 ```text
-对低风险任务使用 RouteMint。
+对低风险任务使用 smartRoute。
 给 user service 添加单元测试。
 ```
 
@@ -212,12 +218,12 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 | 本地 provider 保存 | `python cli.py auth set --provider deepseek --api-key ...` | 已保存到 `~/.codexsaver/config.json` |
 | 工作区诊断 | `python cli.py doctor --workspace .` | `provider_api_key_source=local_config:deepseek`，工作区已就绪 |
 | 全局 launcher 检查 | 用 MCP `initialize` 调用 `~/.codexsaver/codexsaver_mcp.py` | 返回 `serverInfo.name=codexsaver` |
-| 真实 DeepSeek 调用 | `python cli.py delegate "Explain the RouteMint router..." --files codexsaver/router.py --workspace .` | `route=deepseek`、`status=success`、验证通过 |
+| 真实 DeepSeek 调用 | `python cli.py delegate "Explain the smartRoute router..." --files codexsaver/router.py --workspace .` | `route=deepseek`、`status=success`、验证通过 |
 
 推荐流程就是：
 
 1. 保存一次 key
-2. 全局安装 RouteMint
+2. 全局安装 smartRoute
 3. 用 `doctor` 确认就绪
 4. 之后直接发起真实委派调用，不再重复导出 API key
 
@@ -264,7 +270,7 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 
 结论很直接：
 
-- 在真实使用里，RouteMint 默认会把大多数低风险小任务交给 DeepSeek
+- 在真实使用里，smartRoute 默认会把大多数低风险小任务交给 DeepSeek
 - 但它仍然保留了严格的回退路径，用来处理高风险表述和受保护域
 
 ---
@@ -274,8 +280,8 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 方法说明：
 
 - **A** = 反事实的 `Codex-only` 基线，归一化成本指数固定为 `1.00`
-- **B** = `RouteMint` 模式，真实经过当前路由器和 DeepSeek worker 执行
-- 延迟统计的是 RouteMint 实时调用的墙钟时间
+- **B** = `smartRoute` 模式，真实经过当前路由器和 DeepSeek worker 执行
+- 延迟统计的是 smartRoute 实时调用的墙钟时间
 - 节省比例来自当前 `CostEstimator` 的估算，所以这是一个可复现的路由基准，不是账单级财务数据
 
 文字总结：
@@ -287,7 +293,7 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 - 从归一化成本看，平均成本指数从 `1.00` 降到 `0.52`
 - 预计相对下降 `48.0%`
 
-| 任务 | 类型 | 路由 | 延迟 | A: Codex-only 成本指数 | B: RouteMint 成本指数 | 预计节省 | 输出形态 |
+| 任务 | 类型 | 路由 | 延迟 | A: Codex-only 成本指数 | B: smartRoute 成本指数 | 预计节省 | 输出形态 |
 |---|---|---|---:|---:|---:|---:|---|
 | Explain router logic | `explain` | `deepseek` | `2.13s` | `1.00` | `0.55` | `45%` | 只读总结 |
 | Document router module | `docs` | `deepseek` | `3.13s` | `1.00` | `0.55` | `45%` | 单文件 patch |
@@ -299,7 +305,7 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 
 图示说明：
 灰色柱子是固定为 `100` 的 `Codex-only` 基线，绿色柱子表示同一任务在
-`RouteMint` 模式下的归一化成本指数。柱子越低，预计节省越大。
+`smartRoute` 模式下的归一化成本指数。柱子越低，预计节省越大。
 
 结果解读：
 
@@ -333,7 +339,7 @@ python cli.py "添加单元测试" --files src/user/service.ts --workspace .
 
 ### 为什么有些中风险任务仍然会委派
 
-RouteMint 问的不是：
+smartRoute 问的不是：
 
 ```text
 这是不是编码任务？
@@ -363,7 +369,7 @@ User
   ↓
 Codex
   ↓ MCP tool call
-RouteMint
+smartRoute
   ├─ Router
   ├─ Context Packer
   ├─ Worker LLM Provider
@@ -389,7 +395,7 @@ Codex review / apply / finalize
 - 配置文件会使用仅本地用户可读写的权限
 - `doctor` 会告诉你 key 是来自环境变量还是本地配置，并且只显示脱敏预览
 - 如果没有导出环境变量，真实调用会自动使用本地配置
-- 只要验证失败，RouteMint 就会回退为 `needs_codex`
+- 只要验证失败，smartRoute 就会回退为 `needs_codex`
 
 ---
 

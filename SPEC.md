@@ -1,8 +1,8 @@
-# RouteMint — Spec Document
+# smartRoute — Spec Document
 
 ## 1. Concept & Vision
 
-**RouteMint** is a cost-aware AI coding router delivered as an MCP (Model Context Protocol) server. Codex calls it as a tool (`codexsaver.delegate_task`) rather than spawning a subprocess. This keeps Codex's心智模型 clean: RouteMint is not another agent — it is Codex's cost-saving tool.
+**smartRoute** is a cost-aware AI coding router delivered as an MCP (Model Context Protocol) server. Codex calls it as a tool (`codexsaver.delegate_task`) rather than spawning a subprocess. This keeps Codex's心智模型 clean: smartRoute is not another agent — it is Codex's cost-saving tool.
 
 The philosophy: _don't replace Codex, shrink it_. Let cheap models do the work; let expensive models do the thinking.
 
@@ -14,7 +14,7 @@ The philosophy: _don't replace Codex, shrink it_. Let cheap models do the work; 
 
 ### Visual Identity
 
-- **Name:** RouteMint
+- **Name:** smartRoute
 - **Tagline:** Make Codex cheaper without making it dumber.
 - **Primary palette:** terminal-native, monospace-first, minimal chrome
 - **Font:** system monospace
@@ -23,10 +23,10 @@ The philosophy: _don't replace Codex, shrink it_. Let cheap models do the work; 
 ### Log Output Aesthetic (for Codex operators)
 
 ```
-[RouteMint] Delegating low-risk task to DeepSeek (score=2)
+[smartRoute] Delegating low-risk task to DeepSeek (score=2)
 [DeepSeek] Generated 6 tests in 3.2s
 [Verifier] Tests passed
-[RouteMint] Returning patch to Codex — estimated 62% token savings
+[smartRoute] Returning patch to Codex — estimated 62% token savings
 ```
 
 ### README Tone
@@ -42,7 +42,7 @@ User
   ↓
 Codex (Primary Agent / Brain)
   ↓ MCP tool call: codexsaver.delegate_task
-RouteMint MCP Server
+smartRoute MCP Server
   ├─ Task Classifier     (rule-based: delegate or keep)
   ├─ Risk Scorer        (file_risk + task_risk + diff_size + test_confidence)
   ├─ Context Packer     (prune workspace context)
@@ -52,14 +52,14 @@ RouteMint MCP Server
   ↓
 DeepSeek API
   ↓
-RouteMint Result
+smartRoute Result
   ↓
 Codex (reviews patch, applies, finalizes)
 ```
 
 ### MCP Integration
 
-Codex discovers RouteMint via `~/.codex/config.toml` or project-level `.codex/config.toml`:
+Codex discovers smartRoute via `~/.codex/config.toml` or project-level `.codex/config.toml`:
 
 ```toml
 [mcp_servers.codexsaver]
@@ -185,7 +185,7 @@ After the worker provider completes:
 
 ### 5.5 Fallback Engine
 
-If any of these occur, RouteMint returns `needs_codex`:
+If any of these occur, smartRoute returns `needs_codex`:
 - Test failures
 - Diff touches forbidden paths
 - DeepSeek API error or timeout
@@ -232,13 +232,13 @@ codexsaver.delegate_task
 ## 7. Codex Policy (AGENTS.md)
 
 ```markdown
-# RouteMint Policy
+# smartRoute Policy
 
 You have access to a tool named `codexsaver.delegate_task`.
 
-## When to Use RouteMint
+## When to Use smartRoute
 
-Use RouteMint for:
+Use smartRoute for:
 - repo scanning
 - code explanation
 - writing tests
@@ -247,7 +247,7 @@ Use RouteMint for:
 - documentation updates
 - boilerplate generation
 
-Do NOT use RouteMint for:
+Do NOT use smartRoute for:
 - architecture decisions
 - auth/security/payment logic
 - database migrations
@@ -260,7 +260,7 @@ Do NOT use RouteMint for:
 2. Review the returned patch carefully.
 3. Run or recommend tests.
 4. Apply only if safe.
-5. If RouteMint returns `needs_codex`, take over yourself.
+5. If smartRoute returns `needs_codex`, take over yourself.
 ```
 
 ---
@@ -306,10 +306,10 @@ codexsaver/
 
 1. **DeepSeek can write, Codex must validate.** The split is by _verification difficulty_, not by _task type alone_.
 2. **Fail fast and escalate.** One DeepSeek failure → escalate to Codex. Never burn tokens on retry loops.
-3. **Zero friction for Codex.** RouteMint is an MCP tool — no shell spawning, no stdio pipe parsing.
+3. **Zero friction for Codex.** smartRoute is an MCP tool — no shell spawning, no stdio pipe parsing.
 4. **Observable.** Every step logs its decision so operators can audit routing behavior.
 5. **Token savings first.** Every feature is justified by cost reduction or quality maintenance.
-6. **RouteMint never touches code directly.** It returns a patch; Codex applies it.
+6. **smartRoute never touches code directly.** It returns a patch; Codex applies it.
 
 ---
 
@@ -340,7 +340,7 @@ codexsaver/
 `python cli.py install` writes a global Codex MCP server entry to
 `~/.codex/config.toml` by default. The entry points to a stable launcher at
 `~/.codexsaver/codexsaver_mcp.py`, so every Codex workspace can use the same
-RouteMint server without adding per-project config.
+smartRoute server without adding per-project config.
 
 Use `python cli.py install --project` only when a repository-local
 `.codex/config.toml` is preferred.
