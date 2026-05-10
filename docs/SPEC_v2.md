@@ -1,4 +1,4 @@
-# CodexSaver v2 — Spec Document
+# RouteMint v2 — Spec Document
 
 > **Codex decides. Worker implements. Verifier gates. Codex reviews.**
 
@@ -6,7 +6,7 @@
 
 ## 1. Concept & Vision
 
-CodexSaver v2 is a **bounded coding-agent engine** for Codex. It is not a simple delegation tool — it is a controlled implementation loop where a worker model can read, modify, test, and repair within explicit boundaries, while Codex retains judgment, review, and commit authority.
+RouteMint v2 is a **bounded coding-agent engine** for Codex. It is not a simple delegation tool — it is a controlled implementation loop where a worker model can read, modify, test, and repair within explicit boundaries, while Codex retains judgment, review, and commit authority.
 
 **Slogan:** _DeepSeek does the work. Codex makes the decisions._
 
@@ -23,7 +23,7 @@ User
   ↓
 Codex (judgment + review)
   ↓
-CodexSaver MCP Server
+RouteMint MCP Server
   ├─ Router              (delegation level)
   ├─ Work Packet Builder  (bounded contract)
   ├─ Context Planner     (what to show worker)
@@ -389,4 +389,4 @@ codexsaver/
 
 ---
 
-_This spec defines CodexSaver v2 as a managed worker architecture — not a multi-agent chat, but a bounded loop with a primary controller (Codex), a constrained executor (Worker), and a deterministic gate (Verifier)._
+_This spec defines RouteMint v2 as a managed worker architecture — not a multi-agent chat, but a bounded loop with a primary controller (Codex), a constrained executor (Worker), and a deterministic gate (Verifier)._

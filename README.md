@@ -1,4 +1,4 @@
-# CodexSaver
+# RouteMint
 
 > Make Codex cheaper without making it dumber.
 
@@ -6,9 +6,9 @@
   <a href="./README_zh.md"><strong>中文文档</strong></a>
 </p>
 
-![CodexSaver](./CodexSaver.png)
+![RouteMint](./RouteMint.png)
 
-CodexSaver is an MCP tool that turns Codex into a cost-aware router.
+RouteMint is an MCP tool that turns Codex into a cost-aware router.
 It pushes low-risk development work to a cheaper worker LLM, keeps high-risk
 judgment in Codex, and returns enough interaction detail that you can feel when
 the tool is active.
@@ -31,7 +31,7 @@ Most coding sessions contain two very different kinds of work:
 
 Codex is excellent at the first one. It is overqualified for much of the second.
 
-CodexSaver splits the flow on purpose:
+RouteMint splits the flow on purpose:
 
 - `Codex` handles reasoning, ambiguity, protected domains, and approval
 - a configured worker provider handles low-risk throughput work
@@ -48,7 +48,7 @@ Never confuse the two.
 
 ## What It Feels Like
 
-When CodexSaver is active, tool responses are not silent blobs of JSON.
+When RouteMint is active, tool responses are not silent blobs of JSON.
 They include an `interaction` block that makes the routing decision visible:
 
 ```json
@@ -56,8 +56,8 @@ They include an `interaction` block that makes the routing decision visible:
   "interaction": {
     "tool": "codexsaver.delegate_task",
     "mode": "delegated_execution",
-    "headline": "CodexSaver delegated this task to the configured worker provider.",
-    "route_label": "[CodexSaver] route=deepseek task_type=write_tests risk=low",
+    "headline": "RouteMint delegated this task to the configured worker provider.",
+    "route_label": "[RouteMint] route=deepseek task_type=write_tests risk=low",
     "next_step": "Review the worker result and apply it only if the patch looks safe."
   }
 }
@@ -76,8 +76,8 @@ Three states matter:
 ### Recommended Global Install
 
 ```bash
-git clone https://github.com/fendouai/CodexSaver
-cd CodexSaver
+git clone git@github.com:kcd-dev/smartSplit.git
+cd smartSplit
 
 python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
 python cli.py install
@@ -149,13 +149,13 @@ python cli.py doctor
 If Codex is already open in this repository, you can just say:
 
 ```text
-Save my worker provider API key for CodexSaver, run `python cli.py auth set --provider deepseek --api-key ...`, then run `python cli.py install` and `python cli.py doctor`, and tell me whether it is ready.
+Save my worker provider API key for RouteMint, run `python cli.py auth set --provider deepseek --api-key ...`, then run `python cli.py install` and `python cli.py doctor`, and tell me whether it is ready.
 ```
 
 For repo-local setup:
 
 ```text
-Save my worker provider API key for CodexSaver, install CodexSaver only for this repo, run `python cli.py auth set --provider deepseek --api-key ...`, `python cli.py install --project`, then `python cli.py doctor`, and summarize the result.
+Save my worker provider API key for RouteMint, install RouteMint only for this repo, run `python cli.py auth set --provider deepseek --api-key ...`, `python cli.py install --project`, then `python cli.py doctor`, and summarize the result.
 ```
 
 Ready means:
@@ -163,7 +163,7 @@ Ready means:
 - `~/.codex/config.toml` contains the global `codexsaver` MCP server, or `.codex/config.toml` exists in the repo
 - `~/.codexsaver/codexsaver_mcp.py` exists for global installs
 - provider settings are available from env vars or `~/.codexsaver/config.json`
-- `python cli.py doctor` reports `CodexSaver is ready`
+- `python cli.py doctor` reports `RouteMint is ready`
 
 ---
 
@@ -182,7 +182,7 @@ tool_timeout_sec = 120
 Then tell Codex:
 
 ```text
-Use CodexSaver for safe low-risk tasks.
+Use RouteMint for safe low-risk tasks.
 Add unit tests for user service.
 ```
 
@@ -217,12 +217,12 @@ Measured on May 8, 2026 with the global install and local-key workflow:
 | Local provider persistence | `python cli.py auth set --provider deepseek --api-key ...` | saved to `~/.codexsaver/config.json` |
 | Workspace doctor | `python cli.py doctor --workspace .` | `provider_api_key_source=local_config:deepseek`, workspace ready |
 | Global launcher check | `python ~/.codexsaver/codexsaver_mcp.py` with MCP `initialize` | returned `serverInfo.name=codexsaver` |
-| Real DeepSeek call | `python cli.py delegate "Explain the CodexSaver router..." --files codexsaver/router.py --workspace .` | `route=deepseek`, `status=success`, verification passed |
+| Real DeepSeek call | `python cli.py delegate "Explain the RouteMint router..." --files codexsaver/router.py --workspace .` | `route=deepseek`, `status=success`, verification passed |
 
 This is the intended workflow:
 
 1. Save the key once
-2. Install CodexSaver globally
+2. Install RouteMint globally
 3. Confirm readiness with `doctor`
 4. Use real delegated calls without re-exporting API keys
 
@@ -271,7 +271,7 @@ the delegation ratio was:
 
 Takeaway:
 
-- In real usage, CodexSaver defaulted to DeepSeek for most low-risk work
+- In real usage, RouteMint defaulted to DeepSeek for most low-risk work
 - It still preserved a strict fallback path for risky wording and protected domains
 
 ---
@@ -281,8 +281,8 @@ Takeaway:
 Method:
 
 - **A** = counterfactual `Codex-only` baseline with normalized cost index fixed at `1.00`
-- **B** = `CodexSaver` mode with the live router and DeepSeek worker
-- latency is wall-clock time for the real CodexSaver execution
+- **B** = `RouteMint` mode with the live router and DeepSeek worker
+- latency is wall-clock time for the real RouteMint execution
 - savings come from the current `CostEstimator`, so this is a reproducible routing benchmark, not invoice-grade billing data
 
 Summary:
@@ -294,7 +294,7 @@ Summary:
 - Average normalized cost moved from `1.00` to `0.52`
 - Estimated relative reduction was `48.0%`
 
-| Task | Type | Route | Latency | A: Codex-only Cost Index | B: CodexSaver Cost Index | Estimated Savings | Output Shape |
+| Task | Type | Route | Latency | A: Codex-only Cost Index | B: RouteMint Cost Index | Estimated Savings | Output Shape |
 |---|---|---|---:|---:|---:|---:|---|
 | Explain router logic | `explain` | `deepseek` | `2.13s` | `1.00` | `0.55` | `45%` | read-only summary |
 | Document router module | `docs` | `deepseek` | `3.13s` | `1.00` | `0.55` | `45%` | 1-file patch |
@@ -306,7 +306,7 @@ Summary:
 
 Figure:
 Gray bars are the `Codex-only` baseline fixed at `100`.
-Green bars are the `CodexSaver` cost index for the same task.
+Green bars are the `RouteMint` cost index for the same task.
 Lower bars mean lower estimated Codex spend.
 
 Interpretation:
@@ -341,7 +341,7 @@ Interpretation:
 
 ### Why Some Medium-Risk Tasks Still Delegate
 
-CodexSaver does not just ask:
+RouteMint does not just ask:
 
 ```text
 Is this code work?
@@ -370,7 +370,7 @@ User
   ↓
 Codex
   ↓ MCP tool call
-CodexSaver
+RouteMint
   ├─ Router
   ├─ Context Packer
   ├─ Worker LLM Provider
@@ -396,7 +396,7 @@ Core modules:
 - the config file is written with local-user-only permissions
 - `doctor` shows whether the key comes from the environment or local config, and only prints a masked preview
 - live calls use local config automatically if no env key is exported
-- if verification fails, CodexSaver falls back to `needs_codex`
+- if verification fails, RouteMint falls back to `needs_codex`
 
 ---
 

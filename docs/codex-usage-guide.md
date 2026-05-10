@@ -1,0 +1,349 @@
+# RouteMint 在 Codex 中的使用指南
+
+> 本文档面向 **Codex CLI 的用户**，说明如何在自己的工作会话中调用和配合 RouteMint。
+> 如果你还没安装，先看 [README_zh.md](../README_zh.md) 完成安装和配置。
+
+---
+
+## 目录
+
+- [工作流程概览](#工作流程概览)
+- [RouteMint 如何与 Codex 通信](#routemint-如何与-codex-通信)
+- [告诉 Codex 使用 RouteMint](#告诉-codex-使用-routemint)
+- [Codex 会收到什么](#codex-会收到什么)
+- [好的 Prompt 模式 vs 不好的模式](#好的-prompt-模式-vs-不好的模式)
+- [实操示例](#实操示例)
+- [排查指南](#排查指南)
+
+---
+
+## 工作流程概览
+
+当 RouteMint 安装完成后，你在 Codex 里的工作流程变成这样：
+
+```
+你 → 告诉 Codex 任务
+     ↓
+Codex 判断风险
+     ├─ 低风险 → 调用 codexsaver.delegate_task → Worker LLM 执行 → 返回结果
+     │              ↓
+     │          Codex 审查 patch → 安全则应用 → 告知你完成
+     │
+     └─ 高风险或模糊需求 → Codex 自己处理（正常流程）
+```
+
+**你的交互方式没有变**，你依然像以前一样跟 Codex 对话。区别在后台：Codex 学会了把合适的任务转给便宜的 worker 模型。
+
+---
+
+## RouteMint 如何与 Codex 通信
+
+RouteMint 通过 **MCP（Model Context Protocol）** 与 Codex 集成。
+
+安装完成后，`.codex/config.toml`（全局或项目级）中注册了一个 MCP 服务：
+
+```toml
+[mcp_servers.codexsaver]
+command = "python"
+args = ["/Users/you/.codexsaver/codexsaver_mcp.py"]
+startup_timeout_sec = 10
+tool_timeout_sec = 120
+```
+
+Codex 启动时会自动加载这个配置，然后就能调用 RouteMint 暴露的 MCP 工具：
+
+| 工具名 | 用途 | 触发方 |
+|--------|------|--------|
+| `delegate_task` | 将低风险任务委派给 worker LLM | Codex 调用 |
+
+### `delegate_task` 的参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `instruction` | string | 是 | 要委派的编码任务 |
+| `files` | string[] | 否 | 需要包含的文件路径 |
+| `constraints` | string[] | 否 | 额外的安全或输出约束 |
+| `workspace` | string | 否 | 工作区根目录，默认 `.` |
+| `max_files` | integer | 否 | 最多加载的文件数，默认 8 |
+| `max_chars_per_file` | integer | 否 | 每个文件最大字符数，默认 24000 |
+| `max_total_chars` | integer | 否 | 所有文件总字符上限，默认 120000 |
+| `dry_run` | boolean | 否 | true 时只预览路由决策，不真实调用 |
+
+**你不需要手动构造这些参数**——你只需要正常跟 Codex 对话，Codex 会决定是否调用及传入什么参数。
+
+---
+
+## 告诉 Codex 使用 RouteMint
+
+启动 Codex 后，你只需要在合适的时机说一句类似这样的话：
+
+```
+对低风险任务使用 RouteMint。
+```
+
+或者在具体任务前加上：
+
+```
+用 RouteMint 给 user service 加单元测试。
+```
+
+安装时自动生成的 [AGENTS.md](../AGENTS.md) 已经告知了 Codex 什么任务适合委派、什么任务不该委派，所以通常只需要一句话提示。
+
+### 一句话开启
+
+```
+帮我为 RouteMint 保存 worker provider API key，运行 `python cli.py auth set --provider deepseek --api-key ...`，然后运行 `python cli.py install` 和 `python cli.py doctor`，告诉我是否已经就绪。
+```
+
+如果 Codex 已经在仓库里，这句话会完成全套配置。
+
+---
+
+## Codex 会收到什么
+
+当 Codex 调用 `delegate_task` 后，RouteMint 的响应包含一个 **interaction 区块**，方便你（和 Codex）理解发生了什么。
+
+### 三种状态
+
+| interaction mode | 含义 | 说明 |
+|-----------------|------|------|
+| `preview` | 预览模式 | 只展示路由决策，没有实际调用 worker。`--dry-run` 时出现。|
+| `delegated_execution` | 委派成功 | Worker 执行完成，通过验证，Codex 可以审查并应用 patch。 |
+| `codex_takeover` | 交回 Codex | 风险太高 / 任务模糊 / worker 失败，RouteMint 把控制权交回 Codex。 |
+
+### 完整响应示例
+
+委派成功时：
+
+```json
+{
+  "route": "deepseek",
+  "status": "success",
+  "decision": {
+    "route": "deepseek",
+    "task_type": "write_tests",
+    "risk": "low",
+    "reason": "Task is delegatable and risk is acceptable.",
+    "protected_hits": []
+  },
+  "result": {
+    "status": "success",
+    "summary": "Added unit tests for UserService",
+    "changed_files": ["tests/test_user_service.py"],
+    "patch": "diff --git a/tests/test_user_service.py...",
+    "commands_to_run": ["python -m pytest tests/test_user_service.py"],
+    "risk_notes": "Standard test file, no production code changes."
+  },
+  "verification": {
+    "ok": true,
+    "reason": "All checks passed.",
+    "warnings": []
+  },
+  "interaction": {
+    "tool": "codexsaver.delegate_task",
+    "mode": "delegated_execution",
+    "headline": "RouteMint delegated this task to the configured worker provider.",
+    "route_label": "[RouteMint] route=deepseek task_type=write_tests risk=low",
+    "reason": "Task is delegatable and risk is acceptable.",
+    "estimated_savings_percent": 45,
+    "next_step": "Review the worker result and apply it only if the patch looks safe."
+  }
+}
+```
+
+交回 Codex 时：
+
+```json
+{
+  "route": "codex",
+  "status": "needs_codex",
+  "decision": {
+    "route": "codex",
+    "task_type": "simple_refactor",
+    "risk": "high",
+    "reason": "Protected path(s) in scope: auth/",
+    "protected_hits": ["auth/"]
+  },
+  "interaction": {
+    "mode": "codex_takeover",
+    "headline": "RouteMint kept this task in Codex.",
+    "route_label": "[RouteMint] route=codex task_type=simple_refactor risk=high",
+    "next_step": "Use Codex directly because the task is risky, protected, or ambiguous."
+  }
+}
+```
+
+### Codex 收到响应后的行为
+
+1. **`delegated_execution`**：Codex 审查 worker 返回的 patch 和 risk_notes，安全则直接应用修改，然后运行或建议你运行 `commands_to_run` 中的验证命令。
+2. **`codex_takeover`**：Codex 按照正常流程自己处理任务，你不会有任何感知差异。
+
+---
+
+## 好的 Prompt 模式 vs 不好的模式
+
+### 适合委派的任务（低风险）
+
+| 任务 | 推荐说法 | 效果 |
+|------|---------|------|
+| 单元测试 | "给 user service 加单元测试" | 成功委派 |
+| 代码解释 | "解释 router 的路由逻辑" | 成功委派 |
+| 文档更新 | "给 config.py 补文档注释" | 成功委派 |
+| 搜索代码 | "找到所有调用 set 的地方" | 成功委派 |
+| 修 lint | "修复 router.py 的 lint 错误" | 成功委派 |
+| 重构（小范围） | "把 UserService 的重复代码提取成公共方法" | 可能委派 |
+
+### 不适合委派的任务（高风险）
+
+| 任务 | 说法 | 路由结果 |
+|------|------|---------|
+| 认证/授权 | "重构 auth 模块的登录逻辑" | → Codex |
+| 支付 | "修改支付流程" | → Codex |
+| 安全 | "修复安全漏洞" | → Codex |
+| 数据库迁移 | "写数据库迁移脚本" | → Codex |
+| 部署 | "写生产部署脚本" | → Codex |
+| 敏感路径 | "修改 config/auth.yaml" | → Codex |
+
+### 风险关键词
+
+任务的描述中如果包含以下关键词，会触发 RouteMint 的风险保护，任务会留在 Codex：
+
+```
+authentication, authorization, permission, security, payment, billing,
+migration, database schema, encrypt, decrypt, secret, token, production, deploy
+```
+
+### 文件路径保护
+
+以下路径下的文件会被视为受保护域：
+
+```
+auth/, oauth/, jwt/, session/, security/, permission/, rbac/,
+payment/, payments/, billing/, invoice/, migration/, schema/,
+infra/, terraform/, .github/workflows/, .env, secret/, key/, token/
+```
+
+**特别注意**：即使你的任务看起来是低风险（比如"给 auth 模块加注释"），但只要涉及受保护路径，风险等级也会提升。
+
+---
+
+## 实操示例
+
+### 场景 1：写单元测试
+
+你在 Codex 中：
+
+```
+给 user service 添加单元测试。
+```
+
+Codex 判断这是低风险任务，调用 `delegate_task`，传入 `instruction="给 user service 添加单元测试"` 和相关文件。Worker 返回测试 patch，Codex 审查后写入文件。
+
+```
+User
+  │ "给 user service 加单元测试"
+  ▼
+Codex ←── AGENTS.md 指示：write_tests 可以委派
+  │
+  ├─ Router: task_type=write_tests risk=low
+  ├─ ContextPacker: 加载 user service 相关文件
+  ├─ DeepSeek worker: 生成测试代码
+  ├─ Verifier: 检查输出结构，确认无保护路径
+  │
+  ▼
+Codex 收到 patch → 审查 → 写入 tests/test_user_service.py → 完成
+```
+
+### 场景 2：解释代码逻辑
+
+```
+解释 router.py 的路由决策逻辑。
+```
+
+```
+Codex 调用 delegate_task
+  → route=deepseek task_type=explain risk=low
+  → Worker 返回只读总结
+  → Codex 把总结呈现给你
+```
+
+### 场景 3：修改受保护模块
+
+```
+给 auth 模块加登录日志。
+```
+
+```
+Codex 调用 delegate_task
+  → Router 检测到文件路径含 auth/
+  → risk=high → route=codex → codex_takeover
+  → Codex 自己处理这个任务
+```
+
+### 场景 4：直接通过 CLI 委派（不经过 Codex）
+
+你也可以绕过 Codex，直接从终端调用委派：
+
+```bash
+# 预览路由决策
+python cli.py "解释 router 的路由逻辑" --files codexsaver/router.py --workspace . --dry-run
+
+# 真实委派
+python cli.py "解释 router 的路由逻辑" --files codexsaver/router.py --workspace .
+
+# 使用 delegate 子命令
+python cli.py delegate "给 user service 加单元测试" --files src/user/service.py --workspace .
+```
+
+---
+
+## 排查指南
+
+### 情形 1：Codex 从不调用 delegate_task
+
+很可能 Codex 不知道 RouteMint 存在。确认：
+
+1. `python cli.py doctor` 报告 `RouteMint is ready`
+2. `.codex/config.toml` 或 `~/.codex/config.toml` 包含 `codexsaver` MCP server 条目
+3. 对 Codex 说一句 **"对低风险任务使用 RouteMint"**
+
+### 情形 2：所有任务都交回 Codex
+
+检查任务描述中是否含有风险关键词，或文件是否在受保护路径下。Router 的设计就是偏向保守——模糊的任务默认走 Codex。
+
+如果你确信某个任务很安全，可以告诉 Codex 明确排除风险表述。
+
+### 情形 3：Worker 调用失败
+
+```
+python cli.py doctor
+```
+
+检查：
+- API key 是否配置正确（看 `provider_api_key_source` 字段）
+- 网络是否能连接 worker provider
+- Provider 服务是否正常
+
+### 情形 4：想临时换 provider
+
+```bash
+# 临时用环境变量切换
+export CODEXSAVER_PROVIDER=openai
+export CODEXSAVER_API_KEY=sk-xxx
+
+# 或者持久化切换
+python cli.py auth set --provider openai --api-key sk-xxx --model gpt-4o-mini
+```
+
+---
+
+## 记住一句话
+
+**你不改变自己的工作方式。Codex 学会在合适的时候叫 RouteMint 帮忙。**
+
+你的职责只是：
+1. 确保 RouteMint 已安装就绪（`doctor` 通过）
+2. 告诉 Codex "对低风险任务用 RouteMint"
+3. 正常描述你的需求
+
+剩下的，Router 决定谁来做，Verifier 确保做得对，你只看到最终结果。

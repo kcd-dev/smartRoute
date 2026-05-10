@@ -1,10 +1,10 @@
-# CodexSaver MVP Implementation Plan
+# RouteMint MVP Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a working CodexSaver MCP server (`codexsaver_mcp.py`) that Codex calls as a tool. The server routes low-cost tasks to DeepSeek API, verifies results, and returns a patch for Codex to apply.
+**Goal:** Build a working RouteMint MCP server (`codexsaver_mcp.py`) that Codex calls as a tool. The server routes low-cost tasks to DeepSeek API, verifies results, and returns a patch for Codex to apply.
 
-**Architecture:** Python 3.10+ with MCP SDK. CodexSaver is an MCP server that receives tool calls, routes tasks, calls DeepSeek, verifies output, and returns structured JSON. No subprocess spawning, no stdio pipe parsing.
+**Architecture:** Python 3.10+ with MCP SDK. RouteMint is an MCP server that receives tool calls, routes tasks, calls DeepSeek, verifies output, and returns structured JSON. No subprocess spawning, no stdio pipe parsing.
 
 **Tech Stack:** Python 3.10+, `mcp` library, `openai` (DeepSeek compatible), `python-dotenv`
 
@@ -73,7 +73,7 @@ build-backend = "setuptools.build_meta"
 - [ ] **Step 2: Create codexsaver/__init__.py**
 
 ```python
-"""CodexSaver — Cost-aware AI coding router."""
+"""RouteMint — Cost-aware AI coding router."""
 ```
 
 - [ ] **Step 3: Create codexsaver/models.py**
@@ -119,13 +119,13 @@ tool_timeout_sec = 120
 - [ ] **Step 5: Create AGENTS.md**
 
 ```markdown
-# CodexSaver Policy
+# RouteMint Policy
 
 You have access to a tool named `codexsaver.delegate_task`.
 
-## When to Use CodexSaver
+## When to Use RouteMint
 
-Use CodexSaver for:
+Use RouteMint for:
 - repo scanning
 - code explanation
 - writing tests
@@ -134,7 +134,7 @@ Use CodexSaver for:
 - documentation updates
 - boilerplate generation
 
-Do NOT use CodexSaver for:
+Do NOT use RouteMint for:
 - architecture decisions
 - auth/security/payment logic
 - database migrations
@@ -147,7 +147,7 @@ Do NOT use CodexSaver for:
 2. Review the returned patch carefully.
 3. Run or recommend tests.
 4. Apply only if safe.
-5. If CodexSaver returns `needs_codex`, take over yourself.
+5. If RouteMint returns `needs_codex`, take over yourself.
 ```
 
 - [ ] **Step 6: Commit**
@@ -719,7 +719,7 @@ from codexsaver.verifier import Verifier
 from codexsaver.fallback import FallbackEngine
 from codexsaver.models import FORBIDDEN_PATHS
 
-APP_NAME = "CodexSaver"
+APP_NAME = "RouteMint"
 APP_VERSION = "0.1.0"
 
 server = Server(APP_NAME)
@@ -729,7 +729,7 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="codexsaver.delegate_task",
-            description="Delegate a low-cost coding task to DeepSeek via CodexSaver. "
+            description="Delegate a low-cost coding task to DeepSeek via RouteMint. "
                        "Use for: repo scanning, tests, simple refactors, lint fixes, docs. "
                        "DO NOT use for: auth, security, payments, migrations, architecture.",
             input_schema=ToolInputSchema(
@@ -861,7 +861,7 @@ Add to the end of README.md:
 ```md
 ## 🔌 MCP Setup (Recommended)
 
-CodexSaver integrates as an MCP server. Add to your Codex config:
+RouteMint integrates as an MCP server. Add to your Codex config:
 
 ```toml
 # ~/.codex/config.toml or project .codex/config.toml
