@@ -1,6 +1,5 @@
 #!/bin/bash
 # smartRoute 一键启用/禁用/卸载
-# 说明：对外品牌为 smartRoute，当前 MCP 内部 key/launcher 仍沿用 codexsaver。
 # 用法：./toggle.sh enable|disable|uninstall|status
 
 CONFIG_FILE="$HOME/.codex/config.toml"
