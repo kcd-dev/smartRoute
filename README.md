@@ -275,6 +275,137 @@ python cli.py install
 python cli.py doctor
 ```
 
+### Q&A：原理到底是什么
+
+#### Q1：smartRoute 到底做了什么？
+
+它本质上做两件事：
+
+1. **帮 Codex 做低风险任务分流**
+2. **把便宜模型的结果包装回 Codex 可审查的结构**
+
+也就是说，smartRoute 不是替代 Codex，而是给 Codex 增加一个“便宜 worker 层”。
+
+- 低风险任务：代码搜索、写单测、文档更新、lint 修复、小范围重构
+- 高风险任务：架构、权限、安全、支付、迁移、生产部署
+
+高风险任务不应该自动下放给便宜模型，仍然由 Codex 决策。
+
+#### Q2：它是不是“自动把任务发给便宜模型”？
+
+不是。
+
+更准确地说，它是：
+
+- **先判断任务是否适合委托**
+- **适合才委托**
+- **不适合就退回 Codex**
+
+所以它不是无脑转发器，而是一个**带保护规则的委托器**。
+
+#### Q3：它怎么判断“简单任务”和“复杂任务”？
+
+当前不是靠一个神秘评分器，而是靠**规则 + 任务上下文 + 风险分类**。
+
+可以粗暴理解成：
+
+1. 先看你给的指令是不是明确、局部、低风险  
+   例如：  
+   - “给 `router.py` 写单元测试”
+   - “修 README 里的错别字”
+   - “解释这个函数在干嘛”
+
+2. 再看任务有没有碰到保护区  
+   例如：  
+   - auth / 权限
+   - 安全逻辑
+   - 支付逻辑
+   - 数据库迁移
+   - 生产部署
+   - 需求本身很模糊
+
+3. 如果命中保护区，直接不给 worker 做，而是交还 Codex
+
+所以“复杂”不只是代码行数多，而是**风险高、边界不清、后果重**。
+
+#### Q4：那它和 Codex skill 有什么区别？
+
+区别很大：
+
+- **skill**：给 Codex 一套提示词 / 工作流程 / 本地知识
+- **smartRoute**：真的把任务发给另一个更便宜的模型执行
+
+所以：
+
+- skill 解决的是“**怎么提示 Codex**”
+- smartRoute 解决的是“**哪些活先给便宜 worker 干**”
+
+两者可以一起用，但不是一回事。
+
+#### Q5：为什么 `base_url` 不是必填？
+
+因为 smartRoute 的很多 provider 是**内置预设**。
+
+比如：
+
+- `deepseek` 已经知道默认地址
+- `openai` 已经知道默认地址
+- `anthropic` 已经知道默认地址
+- `ollama` / `lmstudio` 也已经知道本地默认地址
+
+所以你选 provider 时，程序已经能推导出一个默认 endpoint。  
+只有以下情况才需要你手动传 `--base-url`：
+
+- 你在用 `custom provider`
+- 你在走代理 / 网关 / 兼容层
+- 你想覆盖系统默认 endpoint
+
+#### Q6：`provider`、`model`、`base_url` 三者分别是什么？
+
+这是最容易混淆的地方：
+
+- `provider`：你选哪一类上游服务  
+  例如 `deepseek`、`openai`、`anthropic`
+- `model`：你要调用的具体模型名  
+  例如 `deepseek-chat`、`gpt-4o-mini`
+- `base_url`：请求实际打到哪个 HTTP endpoint
+
+程序内部通常是：
+
+```text
+provider -> 推出默认 base_url / env key / API 风格
+model -> 作为请求体里的 model 字段
+base_url -> 作为真正发请求的目标地址
+```
+
+所以你可以：
+
+- 保持 `provider=openai`
+- 但把 `base_url` 改成你自己的 OpenAI-compatible 网关
+
+这也是为什么文档里必须把 `base_url` 讲清楚。
+
+#### Q7：一次真实委托时，smartRoute 返回什么给 Codex？
+
+返回的不是一句“成功了”，而是一段结构化结果，通常包含：
+
+- `decision`：为什么决定委托 / 不委托
+- `result.summary`：worker 做了什么
+- `changed_files`：改了哪些文件
+- `patch`：具体补丁
+- `commands_to_run`：建议你本地再跑哪些命令验证
+- `risk_notes`：风险提示
+
+所以 Codex 不是“盲信” worker，而是拿到结果后再审查、再决定是否采用。
+
+#### Q8：最重要的一句话怎么理解？
+
+可以直接记这一句：
+
+> **DeepSeek 干便宜活，Codex 负责判断和把关。**
+
+这就是 smartRoute 的核心原理。
+
 ### 一句话让 Codex 安装
 
 如果 Codex 已经打开了这个仓库，你可以直接发：

@@ -223,6 +223,98 @@ python cli.py doctor
 
 ---
 
+## Q&A：给程序员看的原理说明
+
+### Q1：smartRoute 本质上是什么？
+
+本质上它不是“另一个 IDE”，也不是“另一个 skill 包”。
+
+它更像一个**任务分流层**：
+
+1. Codex 负责理解任务和最终把关
+2. smartRoute 负责把低风险任务委托给更便宜的 worker
+3. worker 返回 patch / changed_files / commands_to_run
+4. Codex 再决定是否采用
+
+一句话：
+
+> smartRoute = 给 Codex 增加一个便宜但受控的执行层
+
+### Q2：它怎么判断该不该委托？
+
+不是按“难度分数”机械判断，而是按**风险和边界**判断。
+
+适合委托的通常是：
+
+- 写单元测试
+- 搜代码
+- 文档更新
+- lint / type 错误修复
+- 小范围样板代码
+
+不适合委托的通常是：
+
+- 架构决策
+- 权限 / 安全
+- 支付逻辑
+- 数据库迁移
+- 生产部署
+- 需求描述本身模糊
+
+所以“复杂”不是指代码多，而是指**出错代价大**。
+
+### Q3：它和 skill 的区别是什么？
+
+- **skill**：增强 Codex 的提示词、流程、局部知识
+- **smartRoute**：把部分任务真实发给别的模型执行
+
+所以 skill 是“**怎么做**”的知识层，smartRoute 是“**先让谁做**”的执行层。
+
+### Q4：为什么文档要把 `provider` / `model` / `base_url` 分开讲？
+
+因为三者语义完全不同：
+
+- `provider`：上游类别，决定默认 endpoint、鉴权方式、环境变量命名
+- `model`：请求里的模型标识
+- `base_url`：实际发请求的 HTTP 地址
+
+内部可以理解成：
+
+```text
+provider -> preset(base_url, api_style, env_keys)
+model -> request.model
+base_url -> target endpoint
+```
+
+这也是为什么：
+
+- 你可以保留 `provider=openai`
+- 但把 `base_url` 指到你自己的 OpenAI-compatible gateway
+
+### Q5：为什么大多数时候不需要手动填 `base_url`？
+
+因为内置 provider 已经有 preset 默认值。
+
+只有三类情况通常要手动填：
+
+1. `provider=custom`
+2. 走代理 / 网关 / 兼容层
+3. 想覆盖默认 endpoint
+
+### Q6：最终返回给 Codex 的是什么？
+
+不是一句自由文本，而是一段结构化结果，典型包含：
+
+- `decision`
+- `changed_files`
+- `patch`
+- `commands_to_run`
+- `risk_notes`
+
+这样 Codex 能做二次审查，而不是盲信 worker。
+
+---
+
 ## Codex 会收到什么
 
 当 Codex 调用 `delegate_task` 后，smartRoute 的响应包含一个 **interaction 区块**，方便你（和 Codex）理解发生了什么。
