@@ -120,24 +120,24 @@ smartRoute 的**内置 provider 预设自带默认 base_url**，所以大多数�
 python cli.py auth providers
 ```
 
-#### 1）使用内置 provider（通常不用传 `--base-url`）
+#### 1）使用内置 provider（文档示例里建议显式写 `--base-url`）
 
 DeepSeek 是默认 provider，因为价格低，并且提供 OpenAI-compatible API。
-切换 provider 通常只需要改 `--provider`，必要时加 `--model`：
+虽然内置 provider 自带默认 endpoint，但**为了让当前实际请求地址一眼可见**，下面的文档示例统一显式写出 `--base-url`：
 
 ```bash
-python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
-python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini
-python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest
-python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash
-python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY --base-url https://api.deepseek.com/chat/completions
+python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini --base-url https://api.openai.com/v1/chat/completions
+python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest --base-url https://api.anthropic.com/v1/messages
+python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash --base-url https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus --base-url https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
 ```
 
-本地模型同样自带默认 base_url，通常也不需要额外设置：
+本地模型同样建议显式写出来，便于排查当前到底连的是哪个本地 endpoint：
 
 ```bash
-python cli.py auth set --provider ollama --model llama3.1
-python cli.py auth set --provider lmstudio --model local-model
+python cli.py auth set --provider ollama --model llama3.1 --base-url http://localhost:11434/v1/chat/completions
+python cli.py auth set --provider lmstudio --model local-model --base-url http://localhost:1234/v1/chat/completions
 ```
 
 #### 2）什么时候必须或建议传 `--base-url`

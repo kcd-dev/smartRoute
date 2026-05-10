@@ -125,6 +125,31 @@ smartRoute 的 provider 解析不是“必须手填 endpoint”的设计。当�
 python cli.py auth providers
 ```
 
+### 文档示例里建议显式写 `--base-url`
+
+虽然内置 provider 已经有 preset 默认值，但为了让“当前请求到底发到哪”更直观，本文档里的
+示例统一显式写出 `--base-url`。
+
+示例一：DeepSeek，显式写默认 endpoint：
+
+```bash
+python cli.py auth set \
+  --provider deepseek \
+  --api-key YOUR_API_KEY \
+  --base-url https://api.deepseek.com/chat/completions
+python cli.py doctor
+```
+
+示例二：本地 Ollama，显式写本地 endpoint：
+
+```bash
+python cli.py auth set \
+  --provider ollama \
+  --model llama3.1 \
+  --base-url http://localhost:11434/v1/chat/completions
+python cli.py doctor
+```
+
 ### 什么时候要显式传 `--base-url`
 
 以下几类情况，建议你明确传：
@@ -133,14 +158,7 @@ python cli.py auth providers
 2. 走自建中转、代理网关、兼容层
 3. 想覆盖内置 provider 的默认 endpoint
 
-示例一：DeepSeek，直接用默认 endpoint：
-
-```bash
-python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
-python cli.py doctor
-```
-
-示例二：OpenAI 的模型名，但请求走你自己的兼容网关：
+示例三：OpenAI 的模型名，但请求走你自己的兼容网关：
 
 ```bash
 python cli.py auth set \
@@ -151,7 +169,7 @@ python cli.py auth set \
 python cli.py doctor
 ```
 
-示例三：custom provider，完全自定义：
+示例四：custom provider，完全自定义：
 
 ```bash
 python cli.py auth set \

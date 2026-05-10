@@ -120,24 +120,25 @@ See the full preset list:
 python cli.py auth providers
 ```
 
-#### Built-in providers: usually no `--base-url` needed
+#### Built-in providers: docs now show `--base-url` explicitly
 
 DeepSeek is the default because it is inexpensive and exposes an OpenAI-compatible API.
-Switching providers is usually just `--provider` plus an optional `--model`:
+Built-in providers already have preset endpoints, but the docs now write `--base-url`
+explicitly so you can see the real target endpoint immediately:
 
 ```bash
-python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
-python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini
-python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest
-python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash
-python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY --base-url https://api.deepseek.com/chat/completions
+python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini --base-url https://api.openai.com/v1/chat/completions
+python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest --base-url https://api.anthropic.com/v1/messages
+python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash --base-url https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus --base-url https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
 ```
 
-Local models also have preset local endpoints:
+For local models, the docs also show the local endpoint explicitly:
 
 ```bash
-python cli.py auth set --provider ollama --model llama3.1
-python cli.py auth set --provider lmstudio --model local-model
+python cli.py auth set --provider ollama --model llama3.1 --base-url http://localhost:11434/v1/chat/completions
+python cli.py auth set --provider lmstudio --model local-model --base-url http://localhost:1234/v1/chat/completions
 ```
 
 #### When you should pass `--base-url`
