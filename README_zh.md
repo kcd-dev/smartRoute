@@ -103,24 +103,52 @@ python cli.py install --project
 
 ### Provider 配置
 
-DeepSeek 是默认 provider，因为价格低，并且提供 OpenAI-compatible API。
-切换 provider 只需要改一个参数：
+smartRoute 的**内置 provider 预设自带默认 base_url**，所以大多数情况下你只需要选 provider、
+填 API key、必要时覆盖 model，**不需要手动传 `--base-url`**。
+
+例如：
+
+- `deepseek` 默认走 `https://api.deepseek.com/chat/completions`
+- `openai` 默认走 `https://api.openai.com/v1/chat/completions`
+- `anthropic` 默认走 `https://api.anthropic.com/v1/messages`
+- `ollama` 默认走 `http://localhost:11434/v1/chat/completions`
+- `lmstudio` 默认走 `http://localhost:1234/v1/chat/completions`
+
+完整预设列表可以运行：
 
 ```bash
+python cli.py auth providers
+```
+
+#### 1）使用内置 provider（通常不用传 `--base-url`）
+
+DeepSeek 是默认 provider，因为价格低，并且提供 OpenAI-compatible API。
+切换 provider 通常只需要改 `--provider`，必要时加 `--model`：
+
+```bash
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
 python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini
 python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest
 python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash
 python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus
 ```
 
-本地模型：
+本地模型同样自带默认 base_url，通常也不需要额外设置：
 
 ```bash
 python cli.py auth set --provider ollama --model llama3.1
 python cli.py auth set --provider lmstudio --model local-model
 ```
 
-任意自定义 OpenAI-compatible endpoint：
+#### 2）什么时候必须或建议传 `--base-url`
+
+以下场景应该显式传 `--base-url`：
+
+1. **`--provider custom`**：没有内置 preset，必须自己提供 endpoint。
+2. **你要走代理网关或兼容层**：例如自建中转、one-api、new-api、各类 OpenAI-compatible gateway。
+3. **你要覆盖内置 provider 的默认 endpoint**：比如 `openai` 仍然用 OpenAI 的模型名，但请求实际发到你自己的代理。
+
+#### 3）custom provider：必须显式提供 `--base-url`
 
 ```bash
 python cli.py auth set \
@@ -130,13 +158,115 @@ python cli.py auth set \
   --model your-model
 ```
 
-查看内置 provider：
+#### 4）OpenAI-compatible 代理 / 网关：覆盖内置 provider 的默认 `base_url`
 
 ```bash
-python cli.py auth providers
+python cli.py auth set \
+  --provider openai \
+  --api-key YOUR_API_KEY \
+  --model gpt-4o-mini \
+  --base-url https://gateway.example.com/v1/chat/completions
 ```
 
-如果你不想保存 key，而是只在当前 shell 会话里临时使用：
+#### 5）配置会保存到哪里
+
+`python cli.py auth set` 会把 provider 相关配置保存到：
+
+```text
+~/.codexsaver/config.json
+```
+
+如果你传了 `--base-url`，这个值也会一起持久化到本地配置里；之后再次调用 `doctor`、
+`delegate` 或 MCP 工具时，都会按这个值解析。
+
+#### 6）只想临时覆盖 `base_url`，不想改本地配置
+
+```bash
+export CODEXSAVER_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+也可以使用 provider 专属环境变量，例如：
+
+```bash
+export DEEPSEEK_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+`{PROVIDER}_BASE_URL` 的命名规则和 provider 名字一致，例如：
+
+- `DEEPSEEK_BASE_URL`
+- `OPENAI_BASE_URL`
+- `ANTHROPIC_BASE_URL`
+- `OLLAMA_BASE_URL`
+
+#### 7）`base_url` 的生效优先级
+
+当前源码里的解析顺序是：
+
+1. 命令行显式传入的 `--base-url`
+2. 环境变量 `CODEXSAVER_BASE_URL`
+3. provider 专属环境变量，如 `DEEPSEEK_BASE_URL`
+4. `~/.codexsaver/config.json` 里的 `providers.<name>.base_url`
+5. 内置 provider preset 默认值
+
+#### 8）怎么确认现在实际生效的是哪个 `base_url`
+
+运行：
+
+```bash
+python cli.py doctor
+```
+
+输出里会直接给你：
+
+```json
+{
+  "provider_base_url": "https://api.deepseek.com/chat/completions",
+  "provider_base_url_source": "preset"
+}
+```
+
+常见的 `provider_base_url_source`：
+
+- `preset`：来自内置默认值
+- `local_config:<provider>`：来自 `~/.codexsaver/config.json`
+- `environment:CODEXSAVER_BASE_URL`：来自全局环境变量
+- `environment:DEEPSEEK_BASE_URL`：来自 provider 专属环境变量
+
+#### 9）三个最常见的完整示例
+
+DeepSeek，直接走默认 base_url：
+
+```bash
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
+python cli.py install
+python cli.py doctor
+```
+
+OpenAI 模型名，但请求走你自己的代理网关：
+
+```bash
+python cli.py auth set \
+  --provider openai \
+  --api-key YOUR_API_KEY \
+  --model gpt-4o-mini \
+  --base-url https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+custom provider，完全自定义 endpoint：
+
+```bash
+python cli.py auth set \
+  --provider custom \
+  --api-key YOUR_API_KEY \
+  --base-url https://example.com/v1/chat/completions \
+  --model your-model
+python cli.py doctor
+```
+
+#### 10）如果你不想保存 key，而是只在当前 shell 会话里临时使用
 
 ```bash
 export CODEXSAVER_PROVIDER=deepseek

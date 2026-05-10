@@ -10,6 +10,7 @@
 - [工作流程概览](#工作流程概览)
 - [smartRoute 如何与 Codex 通信](#smartroute-如何与-codex-通信)
 - [告诉 Codex 使用 smartRoute](#告诉-codex-使用-smartroute)
+- [Provider 与 base_url 配置](#provider-与-base_url-配置)
 - [Codex 会收到什么](#codex-会收到什么)
 - [好的 Prompt 模式 vs 不好的模式](#好的-prompt-模式-vs-不好的模式)
 - [实操示例](#实操示例)
@@ -96,6 +97,129 @@ Codex 启动时会自动加载这个配置，然后就能调用 smartRoute 暴�
 ```
 
 如果 Codex 已经在仓库里，这句话会完成全套配置。
+
+---
+
+## Provider 与 base_url 配置
+
+### 内置 provider 默认已经带 base_url
+
+smartRoute 的 provider 解析不是“必须手填 endpoint”的设计。当前源码里，内置 provider
+都有 preset 默认值，所以大多数情况下你**不需要**手动传 `--base-url`。
+
+常见默认值：
+
+| Provider | 默认 base_url |
+|----------|---------------|
+| `deepseek` | `https://api.deepseek.com/chat/completions` |
+| `openai` | `https://api.openai.com/v1/chat/completions` |
+| `anthropic` | `https://api.anthropic.com/v1/messages` |
+| `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
+| `qwen` | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
+| `ollama` | `http://localhost:11434/v1/chat/completions` |
+| `lmstudio` | `http://localhost:1234/v1/chat/completions` |
+
+完整列表请运行：
+
+```bash
+python cli.py auth providers
+```
+
+### 什么时候要显式传 `--base-url`
+
+以下几类情况，建议你明确传：
+
+1. `--provider custom`
+2. 走自建中转、代理网关、兼容层
+3. 想覆盖内置 provider 的默认 endpoint
+
+示例一：DeepSeek，直接用默认 endpoint：
+
+```bash
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
+python cli.py doctor
+```
+
+示例二：OpenAI 的模型名，但请求走你自己的兼容网关：
+
+```bash
+python cli.py auth set \
+  --provider openai \
+  --api-key YOUR_API_KEY \
+  --model gpt-4o-mini \
+  --base-url https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+示例三：custom provider，完全自定义：
+
+```bash
+python cli.py auth set \
+  --provider custom \
+  --api-key YOUR_API_KEY \
+  --base-url https://example.com/v1/chat/completions \
+  --model your-model
+python cli.py doctor
+```
+
+### `--base-url` 会保存到哪里
+
+`python cli.py auth set` 会把 provider、API key、model、base_url 一起保存到：
+
+```text
+~/.codexsaver/config.json
+```
+
+所以 `auth set --base-url ...` 不是一次性参数；保存后，后续 `doctor`、CLI 委派和 MCP
+运行都会使用这个值。
+
+### 环境变量覆盖顺序
+
+如果你不想改本地配置，也可以只在当前 shell 临时覆盖：
+
+```bash
+export CODEXSAVER_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+或者使用 provider 专属环境变量：
+
+```bash
+export DEEPSEEK_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+当前源码里的 `base_url` 优先级从高到低是：
+
+1. `--base-url`
+2. `CODEXSAVER_BASE_URL`
+3. provider 专属环境变量，例如 `DEEPSEEK_BASE_URL`
+4. `~/.codexsaver/config.json` 里的 `providers.<name>.base_url`
+5. 内置 preset 默认值
+
+### 如何确认当前实际生效的是哪个 endpoint
+
+运行：
+
+```bash
+python cli.py doctor
+```
+
+重点看这两个字段：
+
+```json
+{
+  "provider_base_url": "https://api.deepseek.com/chat/completions",
+  "provider_base_url_source": "preset"
+}
+```
+
+常见来源值：
+
+- `preset`
+- `local_config:<provider>`
+- `environment:CODEXSAVER_BASE_URL`
+- `environment:<PROVIDER>_BASE_URL`
 
 ---
 

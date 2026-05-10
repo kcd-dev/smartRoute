@@ -102,24 +102,53 @@ python cli.py install --project
 
 ### Provider Setup
 
-DeepSeek is the default because it is inexpensive and exposes an OpenAI-compatible API.
-Switching providers is just one flag:
+Built-in providers already ship with a preset `base_url`, so in most cases you only
+choose the provider, save the API key, and optionally override the model.
+You usually do **not** need to pass `--base-url`.
+
+Examples of built-in defaults:
+
+- `deepseek` → `https://api.deepseek.com/chat/completions`
+- `openai` → `https://api.openai.com/v1/chat/completions`
+- `anthropic` → `https://api.anthropic.com/v1/messages`
+- `ollama` → `http://localhost:11434/v1/chat/completions`
+- `lmstudio` → `http://localhost:1234/v1/chat/completions`
+
+See the full preset list:
 
 ```bash
+python cli.py auth providers
+```
+
+#### Built-in providers: usually no `--base-url` needed
+
+DeepSeek is the default because it is inexpensive and exposes an OpenAI-compatible API.
+Switching providers is usually just `--provider` plus an optional `--model`:
+
+```bash
+python cli.py auth set --provider deepseek --api-key YOUR_API_KEY
 python cli.py auth set --provider openai --api-key YOUR_API_KEY --model gpt-4o-mini
 python cli.py auth set --provider anthropic --api-key YOUR_API_KEY --model claude-3-5-haiku-latest
 python cli.py auth set --provider gemini --api-key YOUR_API_KEY --model gemini-2.0-flash
 python cli.py auth set --provider qwen --api-key YOUR_API_KEY --model qwen-plus
 ```
 
-For local models:
+Local models also have preset local endpoints:
 
 ```bash
 python cli.py auth set --provider ollama --model llama3.1
 python cli.py auth set --provider lmstudio --model local-model
 ```
 
-For any custom OpenAI-compatible endpoint:
+#### When you should pass `--base-url`
+
+Pass `--base-url` when:
+
+1. you use `--provider custom`
+2. you route through a proxy / gateway / compatibility layer
+3. you want to override a built-in provider's default endpoint
+
+#### Custom provider: `--base-url` is required
 
 ```bash
 python cli.py auth set \
@@ -129,10 +158,58 @@ python cli.py auth set \
   --model your-model
 ```
 
-See built-in presets:
+#### Override a built-in provider with your own OpenAI-compatible gateway
 
 ```bash
-python cli.py auth providers
+python cli.py auth set \
+  --provider openai \
+  --api-key YOUR_API_KEY \
+  --model gpt-4o-mini \
+  --base-url https://gateway.example.com/v1/chat/completions
+```
+
+`python cli.py auth set` persists the chosen provider, model, API key, and
+`base_url` to:
+
+```text
+~/.codexsaver/config.json
+```
+
+Temporary override without changing local config:
+
+```bash
+export CODEXSAVER_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+Provider-specific env vars also work, for example:
+
+```bash
+export DEEPSEEK_BASE_URL=https://gateway.example.com/v1/chat/completions
+python cli.py doctor
+```
+
+Current base_url precedence in the code is:
+
+1. `--base-url`
+2. `CODEXSAVER_BASE_URL`
+3. provider-specific env var such as `DEEPSEEK_BASE_URL`
+4. `~/.codexsaver/config.json`
+5. built-in preset
+
+Check the effective value with:
+
+```bash
+python cli.py doctor
+```
+
+Look for:
+
+```json
+{
+  "provider_base_url": "https://api.deepseek.com/chat/completions",
+  "provider_base_url_source": "preset"
+}
 ```
 
 If you prefer a temporary one-shell-session setup instead of saving the key locally:
